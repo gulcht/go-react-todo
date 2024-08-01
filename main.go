@@ -15,7 +15,7 @@ import (
 )
 
 type Todo struct {
-	ID        primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"` // omitempty means that the field won't be included in the JSON output if it's set to the zero value
+	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"` // omitempty means that the field won't be included in the JSON output if it's set to the zero value
 	Completed bool               `json:"completed"`
 	Body      string             `json:"body"`
 }
@@ -23,9 +23,11 @@ type Todo struct {
 var collection *mongo.Collection
 
 func main() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file", err)
+	if os.Getenv("ENV") != "production" {
+		err := godotenv.Load(".env")
+		if err != nil {
+			log.Fatal("Error loading .env file", err)
+		}
 	}
 
 	MONGODB_URI := os.Getenv("MONGODB_URI")
@@ -48,6 +50,11 @@ func main() {
 
 	app := fiber.New()
 
+	// app.Use(cors.New(cors.Config{
+	// 	AllowOrigins: "http://localhost:5173",
+	// 	AllowHeaders: "Origin, Content-Type, Accept",
+	// }))
+
 	app.Get("api/todos", getTodos)
 	app.Post("api/todos", createTodo)
 	app.Patch("api/todos/:id", updateTodo)
@@ -57,6 +64,10 @@ func main() {
 	app.Listen(":" + port)
 	if port == "" {
 		port = "4000"
+	}
+
+	if os.Getenv("ENV") == "production" {
+		app.Static("/", "./client/dist")
 	}
 
 	log.Fatal(app.Listen("0.0.0.0:" + port))
